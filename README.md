@@ -1,73 +1,91 @@
-# Welcome to your Lovable project
 
-## Project info
+# MySQL Query Whisperer
 
-**URL**: https://lovable.dev/projects/b8e71c4b-d732-4b6e-91f7-5837782e8cff
+An AI-powered MySQL query optimization tool that analyzes your queries and provides optimization suggestions.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- AI-powered query analysis and optimization using OpenAI
+- Detailed performance analysis of SQL queries
+- Suggestions for indexes, table structure improvements, and server optimizations
+- Query history tracking
+- Modern, responsive UI
 
-**Use Lovable**
+## Project Structure
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b8e71c4b-d732-4b6e-91f7-5837782e8cff) and start prompting.
+This project consists of:
 
-Changes made via Lovable will be committed automatically to this repo.
+1. **Frontend**: React application with a modern UI
+2. **Backend**: Python Flask API that communicates with OpenAI
 
-**Use your preferred IDE**
+## Setup Instructions
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Frontend
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Install dependencies:
+   ```
+   npm install
+   ```
 
-Follow these steps:
+2. Start the development server:
+   ```
+   npm run dev
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. The frontend will be available at `http://localhost:8080`
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Backend (Python)
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. Navigate to the backend directory:
+   ```
+   cd backend
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+2. Create a virtual environment (recommended):
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-**Edit a file directly in GitHub**
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+4. Set up your environment variables:
+   ```
+   cp .env.example .env
+   ```
+   Then edit the `.env` file to add your OpenAI API key.
 
-**Use GitHub Codespaces**
+5. Start the Flask server:
+   ```
+   python app.py
+   ```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+6. The backend API will be available at `http://localhost:5000`
 
-## What technologies are used for this project?
+## How to Use
 
-This project is built with:
+1. Enter your MySQL query in the query input area
+2. Provide additional information about your tables, indexes, and performance issues
+3. Click "Optimize My Query"
+4. Review the optimized query and recommendations
+5. Implement the suggested changes in your database
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Technologies Used
 
-## How can I deploy this project?
+- Frontend:
+  - React
+  - TypeScript
+  - Tailwind CSS
+  - shadcn/ui components
 
-Simply open [Lovable](https://lovable.dev/projects/b8e71c4b-d732-4b6e-91f7-5837782e8cff) and click on Share -> Publish.
+- Backend:
+  - Python
+  - Flask
+  - OpenAI API
 
-## Can I connect a custom domain to my Lovable project?
+## License
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+[MIT License](LICENSE)
