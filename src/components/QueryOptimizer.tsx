@@ -12,15 +12,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CodeEditor from "@/components/CodeEditor";
 import OptimizationResult from "@/components/OptimizationResult";
-import { optimizeQuery } from "@/lib/api";
+import { optimizeQuery, OptimizationRequest } from "@/lib/api";
 
 const formSchema = z.object({
   sqlQuery: z.string().min(1, "Query is required"),
-  tableStructure: z.string(),
-  existingIndexes: z.string(),
-  performanceIssue: z.string(),
-  explainResults: z.string(),
-  serverInfo: z.string(),
+  tableStructure: z.string().optional(),
+  existingIndexes: z.string().optional(),
+  performanceIssue: z.string().optional(),
+  explainResults: z.string().optional(),
+  serverInfo: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -45,17 +45,29 @@ const QueryOptimizer = () => {
   const onSubmit = async (data: FormValues) => {
     setIsOptimizing(true);
     try {
-      const optimizationResult = await optimizeQuery(data);
+      // Convert the form data to the API request format
+      const requestData: OptimizationRequest = {
+        sqlQuery: data.sqlQuery,
+        tableStructure: data.tableStructure || undefined,
+        existingIndexes: data.existingIndexes || undefined,
+        performanceIssue: data.performanceIssue || undefined,
+        explainResults: data.explainResults || undefined,
+        serverInfo: data.serverInfo || undefined,
+      };
+
+      const optimizationResult = await optimizeQuery(requestData);
       setResult(optimizationResult);
       
       // Save to history
       const history = JSON.parse(localStorage.getItem("queryHistory") || "[]");
       const historyItem = {
-        id: Date.now(),
+        id: optimizationResult.id,
         timestamp: new Date().toISOString(),
         query: data.sqlQuery,
         optimizedQuery: optimizationResult.optimizedQuery,
         analysis: optimizationResult.analysis,
+        feedback: null,
+        source: optimizationResult.source || 'openai'
       };
       localStorage.setItem("queryHistory", JSON.stringify([historyItem, ...history]));
       

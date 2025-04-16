@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Check, Copy, Clock } from "lucide-react";
+import { Check, Copy, Clock, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import CodeEditor from "./CodeEditor";
+import FeedbackButtons from "./FeedbackButtons";
 
 interface OptimizationResultProps {
   result: {
@@ -18,6 +19,8 @@ interface OptimizationResultProps {
     indexSuggestions: string[];
     structureSuggestions: string[];
     serverSuggestions: string[];
+    id: number;
+    source?: 'openai' | 'history';
   };
 }
 
@@ -38,11 +41,22 @@ const OptimizationResult = ({ result }: OptimizationResultProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-blue-800">Optimization Results</h2>
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {result.performanceImprovement}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-blue-800">Optimization Results</h2>
+          {result.source === 'history' && (
+            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
+              <History className="h-3 w-3" />
+              From History
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {result.performanceImprovement}
+          </Badge>
+          <FeedbackButtons optimizationId={result.id} />
+        </div>
       </div>
 
       <Card className="overflow-hidden">
