@@ -1,13 +1,18 @@
 
 // Frontend API client for the Python backend
 
+import { OptimizationHistoryItem, QueryFeedback, QueryRequest } from "./types";
+
 export interface OptimizationRequest {
   sqlQuery: string;
-  tableStructure?: string;
-  existingIndexes?: string;
+  tableStructure?: any;
+  existingIndexes?: any;
   performanceIssue?: string;
-  explainResults?: string;
-  serverInfo?: string;
+  explainResults?: any;
+  serverInfo?: any;
+  databaseEngine?: string;
+  databaseVersion?: string;
+  databaseSize?: number;
 }
 
 export interface OptimizationResponse {
@@ -20,7 +25,11 @@ export interface OptimizationResponse {
   serverSuggestions: string[];
   id: number;
   source?: 'openai' | 'history';
+  tokensUsed?: number;
+  modelUsed?: string;
 }
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 /**
  * Call the backend API to optimize a query
@@ -29,18 +38,19 @@ export async function optimizeQuery(data: OptimizationRequest): Promise<Optimiza
   try {
     console.log("Sending optimization request to backend:", data);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Make the actual API call
+    const response = await fetch(`${API_BASE_URL}/api/optimize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
     
-    // This is where you would normally call your Python backend:
-    // const response = await fetch('/api/optimize', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(data),
-    // });
-    // return await response.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} ${errorText}`);
+    }
     
-    return generateMockResponse(data);
+    return await response.json();
   } catch (error) {
     console.error("Error optimizing query:", error);
     throw new Error("Failed to optimize query");
@@ -54,178 +64,48 @@ export async function submitFeedback(id: number, feedback: 'helpful' | 'not_help
   try {
     console.log(`Submitting feedback for optimization #${id}:`, feedback);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // This is where you would normally call your Python backend:
-    // await fetch('/api/feedback', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ id, feedback }),
-    // });
-    
-    // For demo, we'll store the feedback in localStorage
-    const historyStr = localStorage.getItem("queryHistory") || "[]";
-    const history = JSON.parse(historyStr);
-    
-    const updatedHistory = history.map((item: any) => {
-      if (item.id === id) {
-        return { ...item, feedback };
-      }
-      return item;
+    // Make the actual API call
+    const response = await fetch(`${API_BASE_URL}/api/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, feedback }),
     });
     
-    localStorage.setItem("queryHistory", JSON.stringify(updatedHistory));
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} ${errorText}`);
+    }
+    
+    // Update the local history if we're using local storage in dev mode
+    updateLocalHistory(id, feedback);
   } catch (error) {
     console.error("Error submitting feedback:", error);
     throw new Error("Failed to submit feedback");
   }
 }
 
-// This function simulates responses for the demo
-// In production, this would be replaced with real API calls
-function generateMockResponse(data: OptimizationRequest): OptimizationResponse {
-  const { sqlQuery } = data;
-  
-  // Check if we have a similar query in history with positive feedback
-  const historyStr = localStorage.getItem("queryHistory") || "[]";
-  const history = JSON.parse(historyStr);
-  
-  // Find a similar query with positive feedback
-  const similarQuery = history.find((item: any) => {
-    return (
-      item.feedback === 'helpful' && 
-      calculateSimilarity(item.query, sqlQuery) > 0.7 // Threshold for similarity
-    );
-  });
-  
-  // If we found a similar query with positive feedback, return it
-  if (similarQuery) {
-    console.log("Found similar query with positive feedback:", similarQuery);
-    
-    return {
-      originalQuery: sqlQuery,
-      optimizedQuery: similarQuery.optimizedQuery,
-      analysis: similarQuery.analysis,
-      performanceImprovement: "Estimated 70% faster based on similar queries",
-      indexSuggestions: extractSuggestions(similarQuery.analysis, "index"),
-      structureSuggestions: extractSuggestions(similarQuery.analysis, "structure"),
-      serverSuggestions: extractSuggestions(similarQuery.analysis, "server"),
-      id: Date.now(),
-      source: 'history'
-    };
-  }
-  
-  let optimizedQuery = sqlQuery;
-  let analysis = "Analysis of your query:\n\n";
-  let performanceImprovement = "Up to 75% faster";
-  let indexSuggestions: string[] = [];
-  let structureSuggestions: string[] = [];
-  let serverSuggestions: string[] = [];
-  
-  // Add sample indexes
-  if (sqlQuery.toLowerCase().includes("where")) {
-    const whereClause = sqlQuery.toLowerCase().split("where")[1].split(/order by|group by|limit|$/i)[0].trim();
-    const potentialColumns = whereClause.match(/\w+\s*(?:[=<>]|like|in)/gi);
-    
-    if (potentialColumns) {
-      const columnNames = potentialColumns.map(col => 
-        col.replace(/\s*(?:[=<>]|like|in)$/i, '').trim()
-      );
+/**
+ * Update the local history in localStorage (for development mode)
+ */
+function updateLocalHistory(id: number, feedback: 'helpful' | 'not_helpful'): void {
+  try {
+    const historyStr = localStorage.getItem("queryHistory");
+    if (historyStr) {
+      const history = JSON.parse(historyStr);
       
-      columnNames.forEach(column => {
-        indexSuggestions.push(`CREATE INDEX idx_${column} ON ${getTableName(sqlQuery)} (${column});`);
+      const updatedHistory = history.map((item: any) => {
+        if (item.id === id) {
+          return { ...item, feedback };
+        }
+        return item;
       });
       
-      analysis += `• Found potential filtering on columns: ${columnNames.join(', ')}.\n`;
-      analysis += `• Adding indexes on these columns can significantly improve query performance.\n\n`;
+      localStorage.setItem("queryHistory", JSON.stringify(updatedHistory));
     }
+  } catch (error) {
+    console.warn("Error updating local history:", error);
+    // Non-critical error, we can ignore it
   }
-  
-  // Check for SELECT *
-  if (sqlQuery.toLowerCase().includes("select *")) {
-    optimizedQuery = sqlQuery.replace(/SELECT \*/i, "SELECT id, name, created_at");
-    analysis += "• Using SELECT * is inefficient as it retrieves all columns, even those you don't need.\n";
-    analysis += "• Specified only necessary columns to reduce data transfer and processing time.\n\n";
-  }
-  
-  // Check for missing LIMIT
-  if (!sqlQuery.toLowerCase().includes("limit")) {
-    optimizedQuery = optimizedQuery + " LIMIT 100";
-    analysis += "• Added LIMIT clause to prevent returning too many rows.\n";
-    analysis += "• This protects against accidental large result sets.\n\n";
-  }
-  
-  // Suggest table structure improvements
-  structureSuggestions.push("Consider using ENUM instead of VARCHAR for status fields with a limited set of values.");
-  structureSuggestions.push("Add appropriate NOT NULL constraints to columns that should never be null.");
-  
-  // Suggest server optimizations
-  serverSuggestions.push("Increase innodb_buffer_pool_size to at least 70% of available RAM for better caching.");
-  serverSuggestions.push("Enable query cache if using MySQL 5.7 or earlier (disabled by default in MySQL 8.0+).");
-  
-  return {
-    originalQuery: sqlQuery,
-    optimizedQuery,
-    analysis,
-    performanceImprovement,
-    indexSuggestions,
-    structureSuggestions,
-    serverSuggestions,
-    id: Date.now(),
-    source: 'openai'
-  };
 }
 
-// Utility function to extract table name from query
-function getTableName(query: string): string {
-  const fromMatch = query.match(/from\s+(\w+)/i);
-  return fromMatch ? fromMatch[1] : "table_name";
-}
-
-// Utility function to calculate similarity between two strings (mock implementation)
-function calculateSimilarity(str1: string, str2: string): number {
-  // This is a very simple implementation just for demo
-  // In production, you'd use a more sophisticated algorithm
-  const cleanStr1 = str1.toLowerCase().replace(/\s+/g, ' ').trim();
-  const cleanStr2 = str2.toLowerCase().replace(/\s+/g, ' ').trim();
-  
-  // If they're exactly the same, return 1
-  if (cleanStr1 === cleanStr2) return 1;
-  
-  // Check if one is a substring of the other
-  if (cleanStr1.includes(cleanStr2) || cleanStr2.includes(cleanStr1)) {
-    return 0.8;
-  }
-  
-  // Count common words
-  const words1 = new Set(cleanStr1.split(' '));
-  const words2 = new Set(cleanStr2.split(' '));
-  const intersection = new Set([...words1].filter(x => words2.has(x)));
-  
-  const jaccard = intersection.size / (words1.size + words2.size - intersection.size);
-  return jaccard;
-}
-
-// Extract suggestions from analysis text (mock implementation)
-function extractSuggestions(analysis: string, type: 'index' | 'structure' | 'server'): string[] {
-  // In a real implementation, you would parse the analysis text to extract the suggestions
-  // This is just a mock implementation for the demo
-  
-  if (type === 'index') {
-    return [
-      "CREATE INDEX idx_status ON users (status);",
-      "CREATE INDEX idx_created_at ON users (created_at);"
-    ];
-  } else if (type === 'structure') {
-    return [
-      "Consider using ENUM instead of VARCHAR for status fields with a limited set of values.",
-      "Add appropriate NOT NULL constraints to columns that should never be null."
-    ];
-  } else {
-    return [
-      "Increase innodb_buffer_pool_size to at least 70% of available RAM.",
-      "Enable query cache if using MySQL 5.7 or earlier."
-    ];
-  }
-}
+// Add other API functions as needed
