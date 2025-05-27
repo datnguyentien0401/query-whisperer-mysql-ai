@@ -96,7 +96,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS QueryVectors (
         vector_id SERIAL PRIMARY KEY,
         request_id INTEGER NOT NULL REFERENCES QueryRequests(request_id),
-        embedding vector(1536),
+        embedding FLOAT[],
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     ''')
